@@ -90,26 +90,26 @@ int main() {
     Mesh mesh = generate_sphere();
 
 	u32 vao = 0;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
+	GL_CHECK(glGenVertexArrays(1, &vao));
+	GL_CHECK(glBindVertexArray(vao));
 
     u32 a_points = glGetAttribLocation(cow_shader, "points");
 
 	u32 u_model = glGetUniformLocation(cow_shader, "model");
 	u32 u_pv = glGetUniformLocation(cow_shader, "pv");
 
-	glEnableVertexAttribArray(a_points);
+	GL_CHECK(glEnableVertexAttribArray(a_points));
 
     u32 i_mesh;
-	glGenBuffers(1, &i_mesh);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_mesh);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(glm::vec3), &mesh.indices[0], GL_STATIC_DRAW);
+	GL_CHECK(glGenBuffers(1, &i_mesh));
+	GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_mesh));
+	GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(glm::vec3), &mesh.indices[0], GL_STATIC_DRAW));
 
 	u32 v_mesh;
-	glGenBuffers(1, &v_mesh);
-	glBindBuffer(GL_ARRAY_BUFFER, v_mesh);
-	glBufferData(GL_ARRAY_BUFFER, mesh.verts.size() * sizeof(glm::vec3), &mesh.verts[0], GL_STATIC_DRAW);
-	glVertexAttribPointer(a_points, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	GL_CHECK(glGenBuffers(1, &v_mesh));
+	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, v_mesh));
+	GL_CHECK(glBufferData(GL_ARRAY_BUFFER, mesh.verts.size() * sizeof(glm::vec3), &mesh.verts[0], GL_STATIC_DRAW));
+	GL_CHECK(glVertexAttribPointer(a_points, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
 	bool running = true;
 	while (running) {
@@ -143,8 +143,8 @@ int main() {
 		glUniformMatrix4fv(u_pv, 1, GL_FALSE, &pv[0][0]);
 		glUniformMatrix4fv(u_model, 1, GL_FALSE, &model[0][0]);
 
-        glBindVertexArray(vao);
-		glDrawElements(GL_TRIANGLES, mesh.indices.size() * 3, GL_UNSIGNED_INT, &mesh.indices[0]);
+        GL_CHECK(glBindVertexArray(vao));
+		GL_CHECK(glDrawElements(GL_TRIANGLES, mesh.indices.size() * 3, GL_UNSIGNED_INT, &mesh.indices[0]));
 
 		SDL_GL_SwapWindow(window);
 	}
