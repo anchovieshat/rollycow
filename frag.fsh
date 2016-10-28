@@ -1,7 +1,16 @@
 #version 330
 
-out vec3 color;
+in vec3 f_position;
+in vec3 f_normal;
+
+out vec4 color;
 
 void main() {
-	color = vec3(1.0, 1.0, 0.0);
+	vec3 light = vec3(5.0, 5.0, 10.0);
+
+	float brightness = dot(f_normal, normalize(light));
+	vec3 dark = (normalize(f_position) / 2) + vec3(0.2, 0.2, 0.2);
+	vec3 reg = normalize(f_position) + vec3(0.2, 0.2, 0.2);
+
+	color = vec4(mix(dark, reg, brightness), 1.0);
 }
