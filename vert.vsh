@@ -12,6 +12,6 @@ out vec3 f_normal;
 
 void main() {
 	gl_Position = persp * view * model * vec4(point, 1.0);
-	f_position = point;
+	f_position = (model * vec4(point, 1.0)).xyz;
 	f_normal = transpose(inverse(mat3(persp * view))) * normal;
 }
