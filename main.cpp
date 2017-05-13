@@ -18,6 +18,10 @@ typedef struct Mesh {
 	std::vector<Vertex> verts;
 	std::vector<glm::vec3> norms;
 	std::vector<u32> indices;
+	glm::vec3 pos;
+	glm::vec3 vel;
+	glm::vec3 acc;
+	glm::vec3 imp;
 } Mesh;
 
 Vertex new_vert(glm::vec3 point) {
@@ -85,6 +89,11 @@ Mesh generate_sphere() {
 		m.norms.push_back(norm);
 	}
 
+	m.pos = glm::vec3(0.0, 0.0, 0.0);
+	m.vel = glm::vec3(0.0, 0.0, 0.0);
+	m.acc = glm::vec3(0.0, 0.0, 0.0);
+	m.imp = glm::vec3(0.0, 0.0, 0.0);
+
 	return m;
 }
 
@@ -104,7 +113,7 @@ int main() {
 	SDL_GL_GetDrawableSize(window, &screen_width, &screen_height);
 
 	i32 cow_shader = load_and_build_program("vert.vsh", "frag.fsh");
-    Mesh mesh = generate_sphere();
+    Mesh sphere = generate_sphere();
 
 	u32 vao = 0;
 	GL_CHECK(glGenVertexArrays(1, &vao));
@@ -120,22 +129,22 @@ int main() {
 	GL_CHECK(glEnableVertexAttribArray(a_points));
 	GL_CHECK(glEnableVertexAttribArray(a_norms));
 
-	u32 v_mesh_verts;
-	GL_CHECK(glGenBuffers(1, &v_mesh_verts));
-	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, v_mesh_verts));
-	GL_CHECK(glBufferData(GL_ARRAY_BUFFER, mesh.verts.size() * sizeof(glm::vec3), &mesh.verts[0], GL_STATIC_DRAW));
+	u32 v_sphere_verts;
+	GL_CHECK(glGenBuffers(1, &v_sphere_verts));
+	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, v_sphere_verts));
+	GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sphere.verts.size() * sizeof(glm::vec3), &sphere.verts[0], GL_STATIC_DRAW));
 	GL_CHECK(glVertexAttribPointer(a_points, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
-	u32 v_mesh_norms;
-	GL_CHECK(glGenBuffers(1, &v_mesh_norms));
-	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, v_mesh_norms));
-	GL_CHECK(glBufferData(GL_ARRAY_BUFFER, mesh.norms.size() * sizeof(glm::vec3), &mesh.norms[0], GL_STATIC_DRAW));
+	u32 v_sphere_norms;
+	GL_CHECK(glGenBuffers(1, &v_sphere_norms));
+	GL_CHECK(glBindBuffer(GL_ARRAY_BUFFER, v_sphere_norms));
+	GL_CHECK(glBufferData(GL_ARRAY_BUFFER, sphere.norms.size() * sizeof(glm::vec3), &sphere.norms[0], GL_STATIC_DRAW));
 	GL_CHECK(glVertexAttribPointer(a_norms, 3, GL_FLOAT, GL_FALSE, 0, 0));
 
-    u32 i_mesh;
-	GL_CHECK(glGenBuffers(1, &i_mesh));
-	GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_mesh));
-	GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(u32), &mesh.indices[0], GL_STATIC_DRAW));
+    u32 i_sphere;
+	GL_CHECK(glGenBuffers(1, &i_sphere));
+	GL_CHECK(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, i_sphere));
+	GL_CHECK(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphere.indices.size() * sizeof(u32), &sphere.indices[0], GL_STATIC_DRAW));
 
 	GL_CHECK(glEnable(GL_DEPTH_TEST));
 
@@ -146,10 +155,40 @@ int main() {
 	while (running) {
 		SDL_Event event;
 
+		SDL_PumpEvents();
+        const u8 *state = SDL_GetKeyboardState(NULL);
+
+		sphere.imp = glm::vec3(0.0, 0.0, 0.0);
+
+		f32 impulse = 0.3;
+		if (state[SDL_SCANCODE_W]) {
+			sphere.imp.y += impulse;
+		}
+		if (state[SDL_SCANCODE_S]) {
+			sphere.imp.y -= impulse;
+		}
+		if (state[SDL_SCANCODE_A]) {
+			sphere.imp.x -= impulse;
+		}
+		if (state[SDL_SCANCODE_D]) {
+			sphere.imp.x += impulse;
+		}
+
 		f32 new_time = (f32)SDL_GetTicks() / 60.0;
 		f32 dt = new_time - current_time;
 		current_time = new_time;
 		t += dt;
+
+		f32 friction_x = 0.8;
+		f32 friction_y = 0.55;
+
+		sphere.acc.x = (-friction_x) * sphere.vel.x + sphere.imp.x;
+		sphere.pos.x += (0.5 * sphere.acc.x * dt * dt) + (sphere.vel.x * dt);
+		sphere.vel.x += (sphere.acc.x * dt);
+
+		sphere.acc.y = (-friction_y) * sphere.vel.y + sphere.imp.y;
+		sphere.pos.y += (0.5 * sphere.acc.y * dt * dt) + (sphere.vel.y * dt);
+		sphere.vel.y += (sphere.acc.y * dt);
 
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
@@ -174,14 +213,15 @@ int main() {
 		glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
 		glm::mat4 model = glm::mat4(1.0);
-		model = glm::rotate(model, glm::radians(t * 2), glm::vec3(1.0, 1.0, 0.0));
+		model = glm::translate(model, sphere.pos);
+		model = glm::rotate(model, glm::length(sphere.vel) * dt, glm::vec3(1.0, 0.0, 0.0));
 
 		glUniformMatrix4fv(u_persp, 1, GL_FALSE, &projection[0][0]);
 		glUniformMatrix4fv(u_view, 1, GL_FALSE, &view[0][0]);
 		glUniformMatrix4fv(u_model, 1, GL_FALSE, &model[0][0]);
 
         GL_CHECK(glBindVertexArray(vao));
-		GL_CHECK(glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, 0));
+		GL_CHECK(glDrawElements(GL_TRIANGLES, sphere.indices.size(), GL_UNSIGNED_INT, 0));
 
 		SDL_GL_SwapWindow(window);
 	}
