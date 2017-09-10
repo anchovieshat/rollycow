@@ -218,7 +218,7 @@ int main() {
 		glm::mat4 model = glm::mat4(1.0);
 
 		glm::quat rot_y = glm::angleAxis(sphere.vel.y * dt, glm::vec3(-1.0, 0.0, 0.0));
-		glm::quat rot_z = glm::angleAxis(sphere.vel.z * dt, glm::vec3(0.0, 0.0, 1.0));
+		glm::quat rot_x = glm::angleAxis(sphere.vel.x * dt, glm::vec3(0.0, 1.0, 0.0));
 		sphere.rot = rot_x * rot_y * sphere.rot;
 		glm::normalize(sphere.rot);
 		glm::mat4 rot_mat = glm::mat4_cast(sphere.rot);
