@@ -3,6 +3,7 @@
 #include <OpenGL/gl3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +20,7 @@ typedef struct Mesh {
 	std::vector<glm::vec3> norms;
 	std::vector<u32> indices;
 	glm::vec3 pos;
+	glm::quat rot;
 	glm::vec3 vel;
 	glm::vec3 acc;
 	glm::vec3 imp;
@@ -90,6 +92,7 @@ Mesh generate_sphere() {
 	}
 
 	m.pos = glm::vec3(0.0, 0.0, 0.0);
+	m.rot = glm::quat(1.0, 0.0, 0.0, 0.0);
 	m.vel = glm::vec3(0.0, 0.0, 0.0);
 	m.acc = glm::vec3(0.0, 0.0, 0.0);
 	m.imp = glm::vec3(0.0, 0.0, 0.0);
@@ -210,11 +213,18 @@ int main() {
 
 		f32 s_ratio = (f32)screen_width / (f32)screen_height;
 		glm::mat4 projection = glm::perspective(glm::radians(45.0f), s_ratio, 0.1f, 100.0f);
-		glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 10), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+		glm::mat4 view = glm::lookAt(glm::vec3(0, 0, 25), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
 		glm::mat4 model = glm::mat4(1.0);
+
+		glm::quat rot_y = glm::angleAxis(sphere.vel.y * dt, glm::vec3(-1.0, 0.0, 0.0));
+		glm::quat rot_z = glm::angleAxis(sphere.vel.z * dt, glm::vec3(0.0, 0.0, 1.0));
+		sphere.rot = rot_x * rot_y * sphere.rot;
+		glm::normalize(sphere.rot);
+		glm::mat4 rot_mat = glm::mat4_cast(sphere.rot);
+
 		model = glm::translate(model, sphere.pos);
-		model = glm::rotate(model, glm::length(sphere.vel) * dt, glm::vec3(1.0, 0.0, 0.0));
+		model *= rot_mat;
 
 		glUniformMatrix4fv(u_persp, 1, GL_FALSE, &projection[0][0]);
 		glUniformMatrix4fv(u_view, 1, GL_FALSE, &view[0][0]);
